@@ -3336,7 +3336,7 @@ input, select, textarea {
 	#main {
 		background-color: #ffffff;
 		color: #636363;
-		border-radius: 0.25em;
+		border-radius: 1em;
 	}
 
 		#main input, #main select, #main textarea {
@@ -3832,6 +3832,7 @@ input, select, textarea {
   place-items: center;
   aspect-ratio: 5/5;
   border: 1px solid var(--surface-2);
+  border-radius: 10em;
   isolation: isolate;
   transition: border-color 200ms var(--ease-out);
   user-select: none;
