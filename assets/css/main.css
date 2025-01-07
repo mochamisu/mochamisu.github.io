@@ -99,6 +99,7 @@ input, select, textarea {
 	}
 
 	body {
+		
 		background-color: #935d8c;
 		background-image: url("images/overlay.png"), -moz-linear-gradient(45deg, #e37682 15%, #5f4d93 85%);
 		background-image: url("images/overlay.png"), -webkit-linear-gradient(45deg, #e37682 15%, #5f4d93 85%);
@@ -120,6 +121,7 @@ input, select, textarea {
 /* Type */
 
 	body {
+		
 		background-color: #935d8c;
 		color: rgba(255, 255, 255, 0.65);
 	}
@@ -3334,9 +3336,15 @@ input, select, textarea {
 /* Main */
 
 	#main {
-		background-color: #ffffff;
-		color: #636363;
+		background-color: #bc8acf;
+		/*color: #636363;*/
+		background-image: url('../../images/bg2.png'); /* The image file */
+		background-size: cover; /* Ensures the image covers the entire div */
+		background-position: center; /* Centers the image within the div */
+		background-repeat: no-repeat; /* Prevents the image from repeating */
 		border-radius: 1em;
+		outline: rgba(255, 222, 254, 1) 3px solid;
+		
 	}
 
 		#main input, #main select, #main textarea {
@@ -3830,14 +3838,16 @@ input, select, textarea {
   display: grid;
   grid-template-areas: "card";
   place-items: center;
-  aspect-ratio: 5/5;
+  aspect-ratio: 10/5;
   border: 1px solid var(--surface-2);
   border-radius: 10em;
   isolation: isolate;
   transition: border-color 200ms var(--ease-out);
   user-select: none;
-  outline: black 3px solid;
+  outline: rgba(84, 47, 186, .8) 3px solid;
   margin: 5px;
+  
+  background-color: rgba(255, 237, 246, 1) ;
 
   &::before {
     content: "";
