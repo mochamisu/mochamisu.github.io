@@ -45,24 +45,20 @@
             z-index: -1; /* Behind content */
             overflow: hidden;
         }
-
-        .sakura {
+		
+		.sakura { /* Styling for the SPAN containing the emoji */
             position: absolute;
             top: -50px; /* Initial position set by JS */
             left: 0; /* Initial position set by JS */
-            width: 20px;
-            height: 20px;
-            background-color: var(--primary-color);
-            border-radius: 50% 0 50% 0; /* Simple petal shape */
-            opacity: 0.8;
-            will-change: transform; /* Optimize for transform changes */
+            font-size: 24px; /* Base size, scale will modify */
+            /* Opacity is now set by JS */
+            will-change: transform, filter, opacity; /* Optimize for changes */
             pointer-events: none; /* Petals themselves don't capture mouse */
+            user-select: none; /* Prevent text selection of emoji */
+            line-height: 1; /* Ensure consistent vertical positioning */
+            /* Blur is set by JS */
+            /* Scale is set by JS */
         }
-        /* Add variations for a more natural look */
-        .sakura.type1 { background-color: var(--secondary-color); width: 15px; height: 15px; opacity: 0.9; }
-        .sakura.type2 { opacity: 0.9; transform: rotate(15deg); } /* Initial rotation can be added */
-        .sakura.type3 { background-color: var(--accent-color); width: 25px; height: 25px; opacity: 0.7; }
-        .sakura.type4 { transform: rotate(-10deg); } /* Initial rotation can be added */
 
         /* --- Page Layout & Content --- */
         .container {
@@ -189,8 +185,17 @@
 
     <script>
         const sakuraContainer = document.getElementById('sakura-container');
-        const numberOfPetals = 40; // Adjust for density
+        const numberOfPetals = 100; // Increase density slightly for parallax
         const petals = []; // Array to store petal objects
+
+        // --- Parallax Configuration ---
+        const minScale = 0.7;  // Scale of furthest petals (z=1)
+        const maxScale = 2;  // Scale of nearest petals (z=0)
+        const maxBlur = 3;     // Max blur in pixels for furthest petals
+        const minSpeedY = 0.4; // Falling speed of furthest petals
+        const maxSpeedY = 1.2; // Falling speed of nearest petals
+        const minOpacity = 0.5; // Opacity of furthest petals
+        const maxOpacity = 1.0; // Opacity of nearest petals
 
         // --- Mouse Tracking ---
         let mouseX = -1000; // Initialize off-screen
@@ -199,38 +204,57 @@
             mouseX = event.clientX;
             mouseY = event.clientY;
         });
-        // Keep mouse off-screen when it leaves the window
          document.addEventListener('mouseleave', () => {
             mouseX = -1000;
             mouseY = -1000;
         });
 
+        // --- Update Petal Properties based on Z ---
+        function updatePetalAppearance(petal) {
+             // Map Z (0-1) to visual properties
+            petal.scale = maxScale - petal.z * (maxScale - minScale);
+            petal.blur = petal.z * maxBlur;
+            petal.opacity = maxOpacity - petal.z * (maxOpacity - minOpacity);
+             // Apply styles
+            petal.element.style.opacity = petal.opacity;
+            petal.element.style.filter = `blur(${petal.blur}px)`;
+            // Transform is handled separately in update loop to combine with translate/rotate
+        }
+
         // --- Petal Class/Object Factory ---
         function createPetal() {
-            const element = document.createElement('div');
+            const element = document.createElement('span');
             element.classList.add('sakura');
-             // Add random type classes for visual variation
-            const typeClass = `type${Math.floor(Math.random() * 4) + 1}`;
-            element.classList.add(typeClass);
+            element.textContent = '🌸';
 
             const petal = {
                 element: element,
                 x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight * 0.5 - 50, // Start near top, spread out
-                speedY: Math.random() * 1 + 0.5, // Falling speed
+                y: Math.random() * window.innerHeight * 0.5 - 50, // Start near top
+                z: Math.random(), // Depth: 0 (near) to 1 (far)
                 driftX: Math.random() * 1 - 0.5, // Natural side-to-side movement
                 rotation: Math.random() * 360,
                 rotationSpeed: Math.random() * 1 - 0.5,
-                interactionRadius: 100 + Math.random() * 50, // How close mouse needs to be
-                pushForce: 1 + Math.random() * 1, // How strongly mouse pushes
+                interactionRadius: 100 + Math.random() * 50,
+                pushForce: 1 + Math.random() * 1,
+                // Properties derived from Z
+                scale: 1, // will be calculated
+                blur: 0, // will be calculated
+                opacity: 1, // will be calculated
+                speedY: 1, // will be calculated
             };
 
-            // Set initial transform
-            petal.element.style.transform = `translate(${petal.x}px, ${petal.y}px) rotate(${petal.rotation}deg)`;
+            // Calculate Z-dependent properties
+            petal.speedY = maxSpeedY - petal.z * (maxSpeedY - minSpeedY); // Closer = faster
+            updatePetalAppearance(petal); // Calculate initial scale, blur, opacity
+
+            // Set initial transform (including scale)
+            petal.element.style.transform = `translate(${petal.x}px, ${petal.y}px) rotate(${petal.rotation}deg) scale(${petal.scale})`;
 
             sakuraContainer.appendChild(element);
             petals.push(petal);
         }
+
 
         // --- Animation Loop ---
         function updatePetals() {
@@ -238,7 +262,7 @@
             const screenWidth = window.innerWidth;
 
             petals.forEach(petal => {
-                // 1. Apply gravity (fall down)
+                // 1. Apply gravity (fall down using z-dependent speed)
                 petal.y += petal.speedY;
 
                 // 2. Apply natural drift
@@ -253,34 +277,36 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance < petal.interactionRadius) {
-                    // Calculate force based on distance (stronger when closer)
                     const force = ((petal.interactionRadius - distance) / petal.interactionRadius) * petal.pushForce;
-                    // Apply push horizontally away from the mouse
-                    petal.x += (dx / distance) * force; // Normalize dx/distance to get direction vector
-                    // Optional: Add slight vertical push too
-                    // petal.y += (dy / distance) * force * 0.5;
+                     // Apply push horizontally away from the mouse - adjust force by Z? maybe not needed.
+                    petal.x += (dx / distance) * force;
                 }
 
 
                 // 5. Boundary Conditions (Resetting)
-                // If petal falls off bottom, reset to top
-                if (petal.y > screenHeight + 50) { // +50 buffer
+                let needsReset = false;
+                if (petal.y > screenHeight + 50) { // +50 buffer for larger/scaled petals
+                    needsReset = true;
                     petal.y = -50; // Reset above screen
-                    petal.x = Math.random() * screenWidth; // Random horizontal position
-                    petal.speedY = Math.random() * 1 + 0.5; // Randomize speed again
-                    petal.driftX = Math.random() * 1 - 0.5; // Randomize drift again
                 }
-                // If petal goes off sides, reset to top (or wrap around - reset is simpler)
                 if (petal.x > screenWidth + 50 || petal.x < -50) {
-                    petal.y = -50;
-                    petal.x = Math.random() * screenWidth;
-                    petal.speedY = Math.random() * 1 + 0.5;
-                    petal.driftX = Math.random() * 1 - 0.5;
+                     needsReset = true;
+                     petal.y = -50; // Reset Y too if goes off sides
+                }
+
+                if (needsReset) {
+                    petal.x = Math.random() * screenWidth; // Random horizontal position
+                    // *** Reset Z and recalculate appearance ***
+                    petal.z = Math.random();
+                    petal.speedY = maxSpeedY - petal.z * (maxSpeedY - minSpeedY);
+                    petal.driftX = Math.random() * 1 - 0.5; // New drift
+                    updatePetalAppearance(petal); // Recalculate scale, blur, opacity
                 }
 
 
-                // 6. Update element style
-                petal.element.style.transform = `translate(${petal.x}px, ${petal.y}px) rotate(${petal.rotation}deg)`;
+                // 6. Update element transform style (translate, rotate, scale)
+                petal.element.style.transform = `translate(${petal.x}px, ${petal.y}px) rotate(${petal.rotation}deg) scale(${petal.scale})`;
+                // Opacity and filter are set during updatePetalAppearance (on creation/reset)
             });
 
             // Request next frame
@@ -288,7 +314,6 @@
         }
 
         // --- Initialization ---
-        // Create initial petals
         for (let i = 0; i < numberOfPetals; i++) {
             createPetal();
         }
